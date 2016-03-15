@@ -237,20 +237,22 @@
       container: null, // selector
       theme: 'light-floating',
       domain: null, // default to current domain.
-      path: '/', 
+      path: '/',
       expiryDays: 365,
       markup: [
-        '<div class="cc_banner-wrapper {{containerClasses}}">',
+        '<div class="cc_banner-wrapper{{containerClasses}}">',
         '<div class="cc_banner cc_container cc_container--open">',
         '<a href="#null" data-cc-event="click:dismiss" target="_blank" class="cc_btn cc_btn_accept_all">{{options.dismiss}}</a>',
-
         '<p class="cc_message">{{options.message}} <a data-cc-if="options.link" target="{{ options.target }}" class="cc_more_info" href="{{options.link || "#null"}}">{{options.learnMore}}</a></p>',
-
         '<a class="cc_logo" target="_blank" href="http://silktide.com/cookieconsent">Cookie Consent plugin for the EU cookie law</a>',
         '</div>',
-        '</div>'
-      ]
+        '</div>',
+        ],
+      dismissOnScroll: false,
+      dismissOnScrollRange: 20
     },
+
+    onScrollY: 0,
 
     init: function () {
       var options = window[OPTIONS_VARIABLE];
@@ -263,6 +265,14 @@
         this.loadTheme(this.render);
       } else {
         this.render();
+      }
+
+      if(this.options.dismissOnScroll) {
+        window.addEventListener('load', function(){
+          cookieconsent.onScrollY = window.pageYOffset;
+          window.addEventListener('scroll', cookieconsent.onScroll);
+		  $(document).on("click", "a", cookieconsent.onClick);
+        });
       }
     },
 
@@ -329,11 +339,39 @@
     },
 
     dismiss: function (evt) {
-      evt.preventDefault && evt.preventDefault();
-      evt.returnValue = false;
+
+      if(evt) {
+        evt.preventDefault && evt.preventDefault();
+        evt.returnValue = false;
+      }
       this.setDismissedCookie();
-      this.container.removeChild(this.element);
+
+      var op = 1;  // initial opacity
+      var el = this.element;
+      var container = this.container;
+      var timer = setInterval(function () {
+        if (op <= 0.1){
+            clearInterval(timer);
+            el.style.display = 'none';
+            container.removeChild(el);
+        }
+        el.style.opacity = op;
+        el.style.filter = 'alpha(opacity=' + op * 100 + ")";
+        op -= op * 0.1;
+      }, 50);
+
     },
+
+    onScroll: function (evt) {
+      if (Math.abs(window.pageYOffset - cookieconsent.onScrollY) > cookieconsent.options.dismissOnScrollRange) {
+        cookieconsent.dismiss(null);
+        window.removeEventListener('scroll', cookieconsent.onScroll);
+      }
+    },
+
+	onClick: function (evt) {
+      cookieconsent.dismiss(null);
+	},
 
     setDismissedCookie: function () {
       Util.setCookie(DISMISSED_COOKIE, 'yes', this.options.expiryDays, this.options.domain, this.options.path);
