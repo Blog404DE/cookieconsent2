@@ -353,7 +353,10 @@
         if (op <= 0.1){
             clearInterval(timer);
             el.style.display = 'none';
-            container.removeChild(el);
+			// Prüfe ob Child existiert / Führt zu Fehler im Safari 11
+			if(container.contains(el)) {
+            	container.removeChild(el);
+			}
         }
         el.style.opacity = op;
         el.style.filter = 'alpha(opacity=' + op * 100 + ")";
